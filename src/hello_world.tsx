@@ -1,4 +1,4 @@
-import Ngx, {useTemplate, useInputs, useState, usePipe} from './ngx';
+import {Ngx, useTemplate, useInputs, useState, usePipe} from './ngx';
 
 function WithExclamation(inputs = useInputs<{value: string}>()) {
   useTemplate(<span>{inputs.value}!</span>);

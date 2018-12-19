@@ -11,88 +11,19 @@ import {
   ɵelementStart as elementStart,
   ɵelementEnd as elementEnd,
   ɵlistener as listener,
-  EventEmitter,
-  ɵmarkDirty as markDirty,
-  ɵrenderComponent as renderComponentNg
+  ɵmarkDirty as markDirty
 } from '@angular/core';
-
-interface OnClick {
-  onClick?: ($event: MouseEvent) => void;
-}
-
-declare global {
-  namespace JSX {
-    type Element<T> = NgxElement<T>;
-
-    interface IntrinsicElements {
-      div: OnClick;
-      h3: OnClick;
-      span: OnClick;
-      button: OnClick;
-    }
-  }
-}
-
-function flat<T>(acc: T[], curr: T[]): T[] {
-  return [...acc, ...curr];
-}
-
-function toObject(
-  obj: Record<string, string>,
-  key: string
-): Record<string, string> {
-  return {
-    ...obj,
-    [key]: key
-  };
-}
-
-interface NgxInputSpec {
-  type: 'NGX_INPUT_SPEC';
-  name: string;
-}
-
-interface NgxStateSpec {
-  type: 'NGX_STATE_SPEC';
-  value: unknown;
-  component?: {};
-}
-
-interface NgxElement<T> {
-  elSpec: Type<T> | string | NgxInputSpec | NgxStateSpec;
-  props: Partial<T> | null;
-  children?: (NgxElement<{}> | string)[];
-}
-
-function isInputSpec(spec: any): spec is NgxInputSpec {
-  return Object.values(spec).includes('NGX_INPUT_SPEC');
-}
-
-function isInputNgxElement(el: any): el is NgxElement<{}> {
-  return Object.values(el).some(isInputSpec);
-}
-
-function isStateSpec(spec: any): spec is NgxStateSpec {
-  return Object.values(spec).includes('NGX_STATE_SPEC');
-}
-
-function isStateNgxElement(el: any): el is NgxElement<{}> {
-  return Object.values(el).some(isStateSpec);
-}
-
-export default class Ngx {
-  static createElement<T>(
-    elSpec: Type<T> | string,
-    props: Partial<T>,
-    ...children: (string | NgxElement<{}>)[]
-  ): NgxElement<T> {
-    return {
-      elSpec,
-      props,
-      children
-    };
-  }
-}
+import {
+  NgxElement,
+  isInputSpec,
+  isInputNgxElement,
+  isStateSpec,
+  isStateNgxElement,
+  NgxStateSpec
+} from './jsx';
+import {flat, toObject} from './utils';
+import {pendingTemplates} from './use_template';
+import {pendingStateSpecs, HOOKS_STATE_BUS} from './use_state';
 
 function findUsedInputs(tree: NgxElement<{}>): string[] {
   const usedInputs: string[] = [];
@@ -227,11 +158,11 @@ export function decorateComponent<T>(Base: (props?: T) => void) {
   if (isBootstrapping) return;
   if (new.target) return;
 
-  lastTemplate = null;
+  pendingTemplates.clear();
   isBootstrapping = true;
   Base();
   isBootstrapping = false;
-  let bootstrap = lastTemplate!;
+  const bootstrap = Array.from(pendingTemplates)[0];
 
   const usedDirectives = findUsedDirectives(bootstrap);
   for (const directive of usedDirectives) {
@@ -265,85 +196,4 @@ export function decorateComponent<T>(Base: (props?: T) => void) {
     inputs: findUsedInputs(bootstrap).reduce(toObject, {}),
     template: makeRenderFunction(bootstrap)
   });
-}
-
-let lastTemplate: NgxElement<{}> | null = null;
-export function useTemplate(template: NgxElement<{}>) {
-  lastTemplate = template;
-}
-
-export function useInputs<T extends object>(): {
-  [P in keyof T]: T[P] | NgxElement<T[P]>
-} {
-  return new Proxy({} as T, {
-    get(_target, propName: string): NgxElement<{}> {
-      return {
-        elSpec: {
-          type: 'NGX_INPUT_SPEC',
-          name: propName
-        },
-        props: {}
-      };
-    }
-  });
-}
-
-type Updater<T> = (old: T) => T;
-function isUpdater<T>(updater: T | Updater<T>): updater is (old: T) => T {
-  return typeof updater === 'function';
-}
-
-let pendingStateSpecs = new Set<NgxStateSpec>();
-const HOOKS_STATE_BUS = new EventEmitter<{}>();
-
-export function useState<T>(
-  initialValue: T
-): [NgxElement<T>, (newValue: T | Updater<T>) => void] {
-  const stateSpec: NgxStateSpec = {
-    type: 'NGX_STATE_SPEC',
-    value: initialValue
-  };
-
-  const stateValue = {
-    elSpec: stateSpec,
-    props: {}
-  };
-
-  const updateState = (newValue: T | Updater<T>) => {
-    if (isUpdater(newValue)) {
-      stateValue.elSpec.value = newValue(stateValue.elSpec.value as T);
-    } else {
-      stateValue.elSpec.value = newValue;
-    }
-
-    HOOKS_STATE_BUS.emit(stateValue.elSpec);
-  };
-
-  pendingStateSpecs.add(stateSpec);
-  return [stateValue, updateState];
-}
-
-export function usePipe<T, R>(
-  input: T | NgxElement<T>,
-  transform: (_: T) => R
-): NgxElement<R> {
-  return {
-    elSpec: {
-      type: 'NGX_STATE_SPEC',
-      get value() {
-        const innerValue =
-          isStateNgxElement(input) && isStateSpec(input.elSpec)
-            ? (input.elSpec.value as T)
-            : (input as T);
-
-        return transform(innerValue);
-      }
-    },
-    props: {}
-  };
-}
-
-export function renderComponent(component: (props?: {}) => void) {
-  decorateComponent(component);
-  renderComponentNg(component as any);
 }
