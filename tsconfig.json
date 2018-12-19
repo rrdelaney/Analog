@@ -1,0 +1,16 @@
+{
+  "include": ["src/*"],
+  "compilerOptions": {
+    "target": "es2018",
+    "module": "es2015",
+    "moduleResolution": "node",
+    "jsx": "react",
+    "jsxFactory": "Ngx.createElement",
+    "strict": true,
+    "experimentalDecorators": true,
+    "importHelpers": true,
+    "emitDecoratorMetadata": false,
+    "outDir": "dist",
+    "sourceMap": true
+  }
+}

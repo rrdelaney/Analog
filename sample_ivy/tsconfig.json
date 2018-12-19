@@ -1,0 +1,18 @@
+{
+  "include": ["*.ts"],
+  "compilerOptions": {
+    "target": "es2018",
+    "module": "commonjs",
+    "jsx": "react",
+    "jsxFactory": "Ngx.createElement",
+    "strict": true,
+    "experimentalDecorators": true,
+    "importHelpers": true,
+    "emitDecoratorMetadata": false,
+    "outDir": "dist"
+  },
+  "angularCompilerOptions": {
+    "enableIvy": true,
+    "annotationsAs": "static fields"
+  }
+}
