@@ -12,7 +12,8 @@ import {
   ɵelementEnd as elementEnd,
   ɵlistener as listener,
   EventEmitter,
-  ɵmarkDirty as markDirty
+  ɵmarkDirty as markDirty,
+  ɵrenderComponent as renderComponentNg
 } from '@angular/core';
 
 interface OnClick {
@@ -112,7 +113,7 @@ function findUsedInputs(tree: NgxElement<{}>): string[] {
     .map(findUsedInputs)
     .reduce(flat, []);
 
-  return [...usedInputs, ...propInputs, ...childInputs];
+  return Array.from(new Set([...usedInputs, ...propInputs, ...childInputs]));
 }
 
 function findUsedDirectives(tree: NgxElement<{}>): Type<{}>[] {
@@ -131,7 +132,7 @@ function findUsedDirectives(tree: NgxElement<{}>): Type<{}>[] {
     .map(findUsedDirectives)
     .reduce(flat, []);
 
-  return [...usedDirectives, ...childInputs];
+  return Array.from(new Set([...usedDirectives, ...childInputs]));
 }
 
 function makeRenderFunction<T>(
@@ -211,6 +212,7 @@ function makeRenderFunction<T>(
 
   return (rf, ctx) => {
     if (rf & 1) {
+      elIndex = 0;
       renderEl(tree);
     }
 
@@ -221,7 +223,7 @@ function makeRenderFunction<T>(
 }
 
 let isBootstrapping = false;
-export function component<T>(Base: (props?: T) => void) {
+export function decorateComponent<T>(Base: (props?: T) => void) {
   if (isBootstrapping) return;
   if (new.target) return;
 
@@ -230,6 +232,11 @@ export function component<T>(Base: (props?: T) => void) {
   Base();
   isBootstrapping = false;
   let bootstrap = lastTemplate!;
+
+  const usedDirectives = findUsedDirectives(bootstrap);
+  for (const directive of usedDirectives) {
+    decorateComponent(directive as any);
+  }
 
   (Base as any).ngComponentDef = defineComponent<Type<T>>({
     type: Base as any,
@@ -254,10 +261,9 @@ export function component<T>(Base: (props?: T) => void) {
     consts: 10,
     vars: 10,
     encapsulation: 2,
-    directives: findUsedDirectives(bootstrap),
+    directives: usedDirectives,
     inputs: findUsedInputs(bootstrap).reduce(toObject, {}),
     template: makeRenderFunction(bootstrap)
-    // changeDetection: ChangeDetectionStrategy.OnPush
   });
 }
 
@@ -335,4 +341,9 @@ export function usePipe<T, R>(
     },
     props: {}
   };
+}
+
+export function renderComponent(component: (props?: {}) => void) {
+  decorateComponent(component);
+  renderComponentNg(component as any);
 }

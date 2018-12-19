@@ -1,11 +1,9 @@
-import Ngx, {useTemplate, component, useInputs, useState, usePipe} from './ngx';
+import Ngx, {useTemplate, useInputs, useState, usePipe} from './ngx';
 
-component(WithExclamation);
 function WithExclamation(inputs = useInputs<{value: string}>()) {
   useTemplate(<span>{inputs.value}!</span>);
 }
 
-component(DisplayName);
 function DisplayName(inputs = useInputs<{name: string}>()) {
   useTemplate(
     <h3 onClick={e => console.log(e)}>
@@ -14,7 +12,6 @@ function DisplayName(inputs = useInputs<{name: string}>()) {
   );
 }
 
-component(Counter);
 function Counter() {
   const [count, setCount] = useState(1);
 
@@ -25,17 +22,16 @@ function Counter() {
   }
 
   useTemplate(
-    // <button onClick={incrementCount}>
-    <WithExclamation value="Ryan" />
-    // </button>
+    <button onClick={incrementCount}>
+      <WithExclamation value={countStr} />
+    </button>
   );
 }
 
-component(NgxHelloWorld);
 export function NgxHelloWorld() {
   useTemplate(
     <div>
-      <DisplayName name="RT" />
+      <DisplayName name="TX" />
       <Counter />
     </div>
   );

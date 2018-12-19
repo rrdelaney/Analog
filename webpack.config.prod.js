@@ -3,7 +3,7 @@ const TerserPlugin = require('terser-webpack-plugin');
 
 module.exports = {
   mode: 'production',
-  entry: './demo/main.tsx',
+  entry: './src/main.tsx',
   output: {
     path: path.join(__dirname, 'out'),
     filename: 'out.js'
@@ -12,7 +12,7 @@ module.exports = {
     rules: [
       {
         test: /\.tsx?$/,
-        include: [path.resolve(__dirname, 'demo')],
+        include: [path.resolve(__dirname, 'src')],
         loader: 'ts-loader'
       }
     ]

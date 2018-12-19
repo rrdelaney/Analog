@@ -1,9 +1,9 @@
-import {ɵrenderComponent as renderComponent} from '@angular/core';
 import {NgxHelloWorld} from './hello_world';
+import {renderComponent} from './ngx';
 
 let root = document.createElement(NgxHelloWorld.name);
 document.body.appendChild(root);
-renderComponent(NgxHelloWorld as any);
+renderComponent(NgxHelloWorld);
 
 declare var module: {hot: {accept(_: string, cb: () => void): void}};
 if (module.hot) {
@@ -13,6 +13,6 @@ if (module.hot) {
     root = nextRoot;
 
     document.body.appendChild(root);
-    renderComponent(NgxHelloWorld as any);
+    renderComponent(NgxHelloWorld);
   });
 }
