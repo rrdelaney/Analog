@@ -1,33 +1,22 @@
-import {
-  Component,
-  Input,
-  ChangeDetectorRef,
-  Optional,
-  InjectionToken,
-  Inject
-} from '@angular/core';
-
-export const PROPS = new InjectionToken('props');
+import {Component, Input} from '@angular/core';
 
 @Component({
   selector: 'display-name',
   template: `
-    <h3 (click)="logTrue()">
+    <h3>
       Hello
-      <p>{{ name }}</p>
+      <p class="para">{{ name }}</p>
     </h3>
-  `
+  `,
+  styles: [
+    `
+      .para {
+        font-size: 20pt;
+      }
+    `
+  ]
 })
 export class DisplayName {
   @Input() name!: string;
   @Input() name2!: string;
-
-  constructor(
-    @Optional() @Inject(PROPS) readonly props: number,
-    readonly cdr: ChangeDetectorRef
-  ) {}
-
-  logTrue() {
-    console.log(true);
-  }
 }

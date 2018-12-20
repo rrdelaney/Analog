@@ -3,8 +3,6 @@
   "compilerOptions": {
     "target": "es2018",
     "module": "commonjs",
-    "jsx": "react",
-    "jsxFactory": "Ngx.createElement",
     "strict": true,
     "experimentalDecorators": true,
     "importHelpers": true,

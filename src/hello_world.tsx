@@ -1,4 +1,10 @@
-import React, {Component, useInput, useState, Inputs} from './angular-x';
+import React, {
+  Component,
+  useInput,
+  useState,
+  Inputs,
+  useStyle
+} from './angular-x';
 
 interface DisplayNameProps {
   name: string;
@@ -8,8 +14,11 @@ interface DisplayNameProps {
 class DisplayName extends Inputs<DisplayNameProps> {
   static template() {
     const name = useInput<DisplayNameProps>('name');
+    const largeFont = useStyle(`
+      font-size: 20pt;
+    `);
 
-    return <h3>Hello {name}!</h3>;
+    return <h3 class={largeFont}>Hello {name}!</h3>;
   }
 }
 

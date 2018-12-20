@@ -7,16 +7,19 @@ import {
   ɵinterpolation1 as interpolation1,
   ɵelement as element,
   ɵelementProperty as elementProperty,
+  ɵelementStyling as elementStyling,
   ɵbind as bind,
   ɵelementStart as elementStart,
   ɵelementEnd as elementEnd,
   ɵlistener as listener,
-  ɵmarkDirty as markDirty
+  ɵmarkDirty as markDirty,
+  ViewEncapsulation
 } from '@angular/core';
 import {AnyNgElement, isNgElement, Fragment} from './jsx';
 import {claimInputs, InputValue, isInputValue} from './use_input';
 import {STATE_UPDATES, StateValue, isStateValue} from './use_state';
-import {flat, toObject} from './utils';
+import {flat} from './utils';
+import {claimStyles} from './use_style';
 
 export type RenderValue<T> = T | InputValue<T> | StateValue<T>;
 
@@ -43,6 +46,7 @@ export interface NgxComponent extends Type<{}> {
 export function Component<CType extends NgxComponent>(compDef: CType) {
   const template = compDef.template();
   const usedInputs = claimInputs();
+  const usedStyles = claimStyles();
   const usedDirectives = findUsedDirectives(template);
 
   function compDefFactory(t: Type<{}> | null) {
@@ -71,6 +75,8 @@ export function Component<CType extends NgxComponent>(compDef: CType) {
       for (const [propName, propValue] of Object.entries(el.props || {})) {
         if (propName === 'onClick') {
           listener('click', propValue as any);
+        } else if (propName === 'class') {
+          elementStyling([propValue, 1, propValue, true]);
         } else {
           propertyBindings.set([elIndex, propName], propValue);
         }
@@ -138,9 +144,10 @@ export function Component<CType extends NgxComponent>(compDef: CType) {
     selectors: [[compDef.name]],
     consts: 10,
     vars: 10,
-    encapsulation: 2,
+    encapsulation: ViewEncapsulation.None,
     directives: usedDirectives,
-    inputs: usedInputs.reduce(toObject, {}),
+    inputs: usedInputs,
+    styles: usedStyles,
     factory: compDefFactory,
     template: compDefRender
   });

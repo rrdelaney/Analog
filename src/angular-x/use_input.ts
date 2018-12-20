@@ -1,3 +1,5 @@
+import {toObject} from './utils';
+
 export const InputSymbol = Symbol('InputSymbol');
 
 export interface InputValue<T> {
@@ -11,10 +13,10 @@ export function isInputValue(value: any): value is InputValue<any> {
 }
 
 const usedInputs = new Set<string>();
-export function claimInputs(): string[] {
+export function claimInputs(): Record<string, string> {
   const claimedInputs = Array.from(usedInputs);
   usedInputs.clear();
-  return claimedInputs;
+  return claimedInputs.reduce(toObject, {});
 }
 
 export function useInput<InputTypes extends {}>(

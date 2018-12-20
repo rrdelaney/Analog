@@ -5,10 +5,10 @@ declare global {
     type Element<T> = NgElement<T>;
 
     interface IntrinsicElements {
-      div: OnClick;
-      h3: OnClick;
-      span: OnClick;
-      button: OnClick;
+      div: BaseProps;
+      h3: BaseProps;
+      span: BaseProps;
+      button: BaseProps;
     }
 
     interface ElementAttributesProperty {
@@ -17,8 +17,9 @@ declare global {
   }
 }
 
-interface OnClick {
+interface BaseProps {
   onClick?: ($event: MouseEvent) => void;
+  class?: string;
 }
 
 export const Fragment = Symbol('Fragment');
