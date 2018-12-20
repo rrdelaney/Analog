@@ -1,4 +1,14 @@
-import {RenderValue, InputSymbol} from './jsx';
+export const InputSymbol = Symbol('InputSymbol');
+
+export interface InputValue<T> {
+  kind: typeof InputSymbol;
+  inputName: string;
+  defaultValue?: T;
+}
+
+export function isInputValue(value: any): value is InputValue<any> {
+  return Object.values(value).includes(InputSymbol);
+}
 
 const usedInputs = new Set<string>();
 export function claimInputs(): string[] {
@@ -7,10 +17,10 @@ export function claimInputs(): string[] {
   return claimedInputs;
 }
 
-export function useInput<PropTypes extends {}>(
-  inputName: keyof PropTypes,
-  defaultValue?: PropTypes[typeof inputName]
-): RenderValue<PropTypes[typeof inputName]> {
+export function useInput<InputTypes extends {}>(
+  inputName: keyof InputTypes,
+  defaultValue?: InputTypes[typeof inputName]
+): InputValue<InputTypes[typeof inputName]> {
   usedInputs.add(inputName as string);
 
   return {

@@ -13,24 +13,20 @@ import {
   ɵlistener as listener,
   ɵmarkDirty as markDirty
 } from '@angular/core';
-import {
-  AngNgElement,
-  isNgElement,
-  RenderValue,
-  isStateValue,
-  isInputValue
-} from './jsx';
-import {claimInputs} from './use_input';
+import {AnyNgElement, isNgElement, Fragment} from './jsx';
+import {claimInputs, InputValue, isInputValue} from './use_input';
+import {STATE_UPDATES, StateValue, isStateValue} from './use_state';
 import {flat, toObject} from './utils';
-import {STATE_UPDATES} from './use_state';
 
-function findUsedDirectives(tree: AngNgElement): Type<{}>[] {
+export type RenderValue<T> = T | InputValue<T> | StateValue<T>;
+
+function findUsedDirectives(el: AnyNgElement): Type<{}>[] {
   const usedDirectives: Type<{}>[] = [];
-  if (typeof tree.elSpec !== 'string') {
-    usedDirectives.push(tree.elSpec);
+  if (typeof el.elSpec !== 'string' && el.elSpec !== Fragment) {
+    usedDirectives.push(el.elSpec);
   }
 
-  const children = tree.children || [];
+  const children = el.children || [];
   const childInputs = children
     .filter(isNgElement)
     .map(findUsedDirectives)
@@ -40,7 +36,7 @@ function findUsedDirectives(tree: AngNgElement): Type<{}>[] {
 }
 
 export interface NgxComponent extends Type<{}> {
-  template(): AngNgElement;
+  template(): AnyNgElement;
   ngComponentDef?: never;
 }
 
@@ -65,10 +61,10 @@ export function Component<CType extends NgxComponent>(compDef: CType) {
   const interpolationBindings = new Map<number, RenderValue<unknown>>();
   const propertyBindings = new Map<[number, string], RenderValue<unknown>>();
   function compDefRender(rf: RenderFlags, ctx: {}) {
-    function renderEl(el: AngNgElement) {
+    function renderEl(el: AnyNgElement) {
       if (typeof el.elSpec === 'string') {
         elementStart(elIndex, el.elSpec);
-      } else {
+      } else if (el.elSpec !== Fragment) {
         element(elIndex, el.elSpec.name, [1, ...Object.keys(el.props || {})]);
       }
 
@@ -80,7 +76,9 @@ export function Component<CType extends NgxComponent>(compDef: CType) {
         }
       }
 
-      elIndex++;
+      if (el.elSpec !== Fragment) {
+        elIndex++;
+      }
 
       for (const child of el.children || []) {
         if (isNgElement(child)) {
@@ -148,6 +146,6 @@ export function Component<CType extends NgxComponent>(compDef: CType) {
   });
 }
 
-export class Props<PropTypes extends {}> {
-  __props__!: {[P in keyof PropTypes]: RenderValue<PropTypes[P]>};
+export class Inputs<InputTypes extends {}> {
+  __props__!: {[P in keyof InputTypes]: RenderValue<InputTypes[P]>};
 }

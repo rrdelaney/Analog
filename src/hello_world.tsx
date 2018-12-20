@@ -1,15 +1,15 @@
-import Ng, {Component, useInput, useState, Props} from './angular-x';
+import React, {Component, useInput, useState, Inputs} from './angular-x';
 
 interface DisplayNameProps {
   name: string;
 }
 
 @Component
-class DisplayName extends Props<DisplayNameProps> {
+class DisplayName extends Inputs<DisplayNameProps> {
   static template() {
     const name = useInput<DisplayNameProps>('name');
 
-    return <div>Hello {name}!</div>;
+    return <h3>Hello {name}!</h3>;
   }
 }
 
@@ -22,7 +22,12 @@ class Counter {
       setCount(c => c + 1);
     }
 
-    return <button onClick={incCount}>{count}</button>;
+    return (
+      <>
+        <div>Count: {count}</div>
+        <button onClick={incCount}>+</button>
+      </>
+    );
   }
 }
 
@@ -30,10 +35,10 @@ class Counter {
 export class NgxHelloWorld {
   static template() {
     return (
-      <div>
+      <>
         <DisplayName name="Ryan" />
         <Counter />
-      </div>
+      </>
     );
   }
 }

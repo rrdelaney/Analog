@@ -5,7 +5,6 @@
     "module": "es2015",
     "moduleResolution": "node",
     "jsx": "react",
-    "jsxFactory": "Ng.createElement",
     "strict": true,
     "experimentalDecorators": true,
     "importHelpers": true,

@@ -21,47 +21,17 @@ interface OnClick {
   onClick?: ($event: MouseEvent) => void;
 }
 
-export const InputSymbol = Symbol('InputSymbol');
-
-export interface InputValue<T> {
-  kind: typeof InputSymbol;
-  inputName: string;
-  defaultValue?: T;
-}
-
-export function isInputValue(value: any): value is InputValue<any> {
-  return Object.values(value).includes(InputSymbol);
-}
-
-export const StateSymbol = Symbol('StateSymbol');
-
-export interface StateValue<T> {
-  kind: typeof StateSymbol;
-  currentValue: T;
-  componentInstance?: unknown;
-}
-
-export function isStateValue(value: any): value is StateValue<any> {
-  return Object.values(value).includes(StateSymbol);
-}
-
-export type StateUpdater<T> = (update: T | ((_: T) => T)) => void;
-
-export function isStateUpdateFn<T>(value: any): value is (_: T) => T {
-  return typeof value === 'function';
-}
-
-export type RenderValue<T> = T | InputValue<T> | StateValue<T>;
+export const Fragment = Symbol('Fragment');
 
 export interface NgElement<T> {
-  elSpec: Type<T> | string;
+  elSpec: Type<T> | string | typeof Fragment;
   props: Partial<T> | null;
   children?: unknown[];
 }
 
-export type AngNgElement = NgElement<any>;
+export type AnyNgElement = NgElement<any>;
 
-export function isNgElement(el: any): el is AngNgElement {
+export function isNgElement(el: any): el is AnyNgElement {
   return (
     el != null &&
     typeof el !== 'number' &&
@@ -82,4 +52,6 @@ export class Ng {
       children
     };
   }
+
+  static Fragment = Fragment;
 }
