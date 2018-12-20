@@ -1,5 +1,5 @@
+import {ɵrenderComponent as renderComponent} from '@angular/core';
 import {NgxHelloWorld} from './hello_world';
-import {renderComponent} from './ngx';
 
 let root = document.createElement(NgxHelloWorld.name);
 document.body.appendChild(root);

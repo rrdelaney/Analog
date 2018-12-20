@@ -1,38 +1,39 @@
-import {Ngx, useTemplate, useInputs, useState, usePipe} from './ngx';
+import Ng, {Component, useInput, useState, Props} from './angular-x';
 
-function WithExclamation(inputs = useInputs<{value: string}>()) {
-  useTemplate(<span>{inputs.value}!</span>);
+interface DisplayNameProps {
+  name: string;
 }
 
-function DisplayName(inputs = useInputs<{name: string}>()) {
-  useTemplate(
-    <h3 onClick={e => console.log(e)}>
-      Hello <WithExclamation value={inputs.name} />
-    </h3>
-  );
-}
+@Component
+class DisplayName extends Props<DisplayNameProps> {
+  static template() {
+    const name = useInput<DisplayNameProps>('name');
 
-function Counter() {
-  const [count, setCount] = useState(1);
-
-  const countStr = usePipe(count, c => `${c}`);
-
-  function incrementCount() {
-    setCount(count => count + 1);
+    return <div>Hello {name}!</div>;
   }
-
-  useTemplate(
-    <button onClick={incrementCount}>
-      <WithExclamation value={countStr} />
-    </button>
-  );
 }
 
-export function NgxHelloWorld() {
-  useTemplate(
-    <div>
-      <DisplayName name="TX" />
-      <Counter />
-    </div>
-  );
+@Component
+class Counter {
+  static template() {
+    const [count, setCount] = useState(0);
+
+    function incCount() {
+      setCount(c => c + 1);
+    }
+
+    return <button onClick={incCount}>{count}</button>;
+  }
+}
+
+@Component
+export class NgxHelloWorld {
+  static template() {
+    return (
+      <div>
+        <DisplayName name="Jake" />
+        <Counter />
+      </div>
+    );
+  }
 }
