@@ -19,7 +19,7 @@ declare global {
 }
 
 interface BaseProps {
-  onClick?: ($event: MouseEvent) => void;
+  onClick?: RenderValue<($event: MouseEvent) => void>;
   style?: RenderValue<any>;
 }
 

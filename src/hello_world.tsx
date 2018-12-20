@@ -9,24 +9,26 @@ import React, {
 
 interface DisplayNameProps {
   name: string;
+  fontSize: number;
+  onFontSizeIncrease: () => void;
 }
 
 @Component
 class DisplayName extends Inputs<DisplayNameProps> {
   static template() {
-    const name = useInput<DisplayNameProps>('name');
-    const [size, setSize] = useState(10);
-    const sizePt = usePipe(size, s => `${s}pt`);
-    const largeFont = useStyle({'font-size': sizePt});
+    const name = useInput<DisplayNameProps, 'name'>('name');
+    const fontSize = useInput<DisplayNameProps, 'fontSize'>('fontSize');
+    const onFontSizeIncrease = useInput<DisplayNameProps, 'onFontSizeIncrease'>(
+      'onFontSizeIncrease'
+    );
 
-    function incSize() {
-      setSize(s => s + 1);
-    }
+    const sizePt = usePipe(fontSize, s => `${s}pt`);
+    const largeFont = useStyle({'font-size': sizePt});
 
     return (
       <>
         <h3 style={largeFont}>Hello {name}!</h3>
-        <button onClick={incSize}>+</button>
+        <button onClick={onFontSizeIncrease}>+</button>
       </>
     );
   }
@@ -53,9 +55,15 @@ class Counter {
 @Component
 export class NgxHelloWorld {
   static template() {
+    const [size, setSize] = useState(10);
+
+    function incSize() {
+      setSize(c => c + 1);
+    }
+
     return (
       <>
-        <DisplayName name="Ryan" />
+        <DisplayName name="Ryan" fontSize={size} onFontSizeIncrease={incSize} />
         {/* <Counter /> */}
       </>
     );

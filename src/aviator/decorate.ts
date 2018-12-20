@@ -111,7 +111,7 @@ export function Component<CType extends NgxComponent>(compDef: CType) {
         setComponentInstanceForState(propValue);
 
         if (propName === 'onClick') {
-          listener('click', propValue as any);
+          listener('click', unwrapRenderValue(propValue));
         } else if (propName === 'style') {
           styleBindings.set(elIndex, propValue);
           elementStyling(

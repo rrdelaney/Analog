@@ -18,10 +18,13 @@ export function claimInputs(): Record<string, string> {
   return claimedInputs.reduce(toObject, {});
 }
 
-export function useInput<InputTypes extends {}>(
-  inputName: keyof InputTypes,
-  defaultValue?: InputTypes[typeof inputName]
-): InputValue<InputTypes[typeof inputName]> {
+export function useInput<
+  InputTypes extends {},
+  InputName extends keyof InputTypes
+>(
+  inputName: InputName,
+  defaultValue?: InputTypes[InputName]
+): InputValue<InputTypes[InputName]> {
   usedInputs.add(inputName as string);
 
   return {
