@@ -5,7 +5,7 @@ import React, {
   Inputs,
   useStyle,
   usePipe
-} from './angular-v';
+} from './aviator';
 
 interface DisplayNameProps {
   name: string;
