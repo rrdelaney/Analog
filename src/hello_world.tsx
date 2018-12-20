@@ -31,7 +31,7 @@ export class NgxHelloWorld {
   static template() {
     return (
       <div>
-        <DisplayName name="Jake" />
+        <DisplayName name="Ryan" />
         <Counter />
       </div>
     );
