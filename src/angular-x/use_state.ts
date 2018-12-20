@@ -1,7 +1,6 @@
 import {EventEmitter} from '@angular/core';
 
-export const StateSymbol = Symbol('StateSymbol');
-
+const StateSymbol = Symbol('StateSymbol');
 export interface StateValue<T> {
   kind: typeof StateSymbol;
   currentValue: T;

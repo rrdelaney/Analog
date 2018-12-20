@@ -1,7 +1,6 @@
 import {toObject} from './utils';
 
-export const InputSymbol = Symbol('InputSymbol');
-
+const InputSymbol = Symbol('InputSymbol');
 export interface InputValue<T> {
   kind: typeof InputSymbol;
   inputName: string;

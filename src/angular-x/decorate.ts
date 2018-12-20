@@ -13,15 +13,28 @@ import {
   ɵelementEnd as elementEnd,
   ɵlistener as listener,
   ɵmarkDirty as markDirty,
+  ɵelementStyleProp as elementStyleProp,
+  ɵelementStylingApply as elementStylingApply,
   ViewEncapsulation
 } from '@angular/core';
 import {AnyNgElement, isNgElement, Fragment} from './jsx';
 import {claimInputs, InputValue, isInputValue} from './use_input';
 import {STATE_UPDATES, StateValue, isStateValue} from './use_state';
+import {PipeValue, isPipeValue} from './use_pipe';
+import {StyleValue, isStyleValue, StyleRule} from './use_style';
 import {flat} from './utils';
-import {claimStyles} from './use_style';
 
-export type RenderValue<T> = T | InputValue<T> | StateValue<T>;
+export type RenderValue<T> =
+  | T
+  | InputValue<T>
+  | StateValue<T>
+  | StyleValue<T>
+  | PipeValue<any, T>;
+
+export interface NgxComponent extends Type<{}> {
+  template(): AnyNgElement;
+  ngComponentDef?: never;
+}
 
 function findUsedDirectives(el: AnyNgElement): Type<{}>[] {
   const usedDirectives: Type<{}>[] = [];
@@ -38,15 +51,9 @@ function findUsedDirectives(el: AnyNgElement): Type<{}>[] {
   return Array.from(new Set([...usedDirectives, ...childInputs]));
 }
 
-export interface NgxComponent extends Type<{}> {
-  template(): AnyNgElement;
-  ngComponentDef?: never;
-}
-
 export function Component<CType extends NgxComponent>(compDef: CType) {
   const template = compDef.template();
   const usedInputs = claimInputs();
-  const usedStyles = claimStyles();
   const usedDirectives = findUsedDirectives(template);
 
   function compDefFactory(t: Type<{}> | null) {
@@ -64,7 +71,35 @@ export function Component<CType extends NgxComponent>(compDef: CType) {
   let elIndex = 0;
   const interpolationBindings = new Map<number, RenderValue<unknown>>();
   const propertyBindings = new Map<[number, string], RenderValue<unknown>>();
+  const styleBindings = new Map<number, RenderValue<unknown>>();
+
   function compDefRender(rf: RenderFlags, ctx: {}) {
+    function unwrapRenderValue<T>(value: RenderValue<T>): T {
+      if (isStateValue(value)) {
+        return value.currentValue;
+      } else if (isInputValue(value)) {
+        return (ctx as any)[value.inputName] || value.defaultValue;
+      } else if (isPipeValue(value)) {
+        return value.transform(unwrapRenderValue(value.source));
+      } else if (isStyleValue(value)) {
+        return unwrapRenderValue(value.rules[0].source);
+      } else {
+        return value;
+      }
+    }
+
+    function setComponentInstanceForState<T>(value: RenderValue<T>) {
+      if (isStateValue(value) && !value.componentInstance) {
+        value.componentInstance = ctx;
+      } else if (isPipeValue(value)) {
+        setComponentInstanceForState(value.source);
+      } else if (isStyleValue(value)) {
+        for (const {source} of value.rules) {
+          setComponentInstanceForState(source);
+        }
+      }
+    }
+
     function renderEl(el: AnyNgElement) {
       if (typeof el.elSpec === 'string') {
         elementStart(elIndex, el.elSpec);
@@ -73,10 +108,16 @@ export function Component<CType extends NgxComponent>(compDef: CType) {
       }
 
       for (const [propName, propValue] of Object.entries(el.props || {})) {
+        setComponentInstanceForState(propValue);
+
         if (propName === 'onClick') {
           listener('click', propValue as any);
-        } else if (propName === 'class') {
-          elementStyling([propValue, 1, propValue, true]);
+        } else if (propName === 'style') {
+          styleBindings.set(elIndex, propValue);
+          elementStyling(
+            null,
+            propValue.rules.map((v: StyleRule<any>) => v.property)
+          );
         } else {
           propertyBindings.set([elIndex, propName], propValue);
         }
@@ -87,10 +128,11 @@ export function Component<CType extends NgxComponent>(compDef: CType) {
       }
 
       for (const child of el.children || []) {
+        setComponentInstanceForState(child);
+
         if (isNgElement(child)) {
           renderEl(child);
         } else if (isStateValue(child)) {
-          child.componentInstance = ctx;
           interpolationBindings.set(elIndex, child);
           text(elIndex++);
         } else if (isInputValue(child)) {
@@ -108,24 +150,28 @@ export function Component<CType extends NgxComponent>(compDef: CType) {
 
     function renderBindings() {
       for (const [elIndex, binding] of interpolationBindings) {
-        if (isStateValue(binding)) {
-          textBinding(elIndex, interpolation1('', binding.currentValue, ''));
-        } else if (isInputValue(binding)) {
-          textBinding(
-            elIndex,
-            interpolation1(
-              '',
-              (ctx as any)[binding.inputName] || binding.defaultValue,
-              ''
-            )
-          );
-        } else {
-          textBinding(elIndex, interpolation1('', binding, ''));
-        }
+        textBinding(
+          elIndex,
+          interpolation1('', unwrapRenderValue(binding), '')
+        );
       }
 
       for (const [[elIndex, propName], binding] of propertyBindings) {
-        elementProperty(elIndex, propName, bind(binding));
+        elementProperty(elIndex, propName, bind(unwrapRenderValue(binding)));
+      }
+
+      for (const [elIndex, binding] of styleBindings) {
+        if (isStyleValue(binding)) {
+          for (let i = 0; i < binding.rules.length; ++i) {
+            elementStyleProp(
+              elIndex,
+              i,
+              unwrapRenderValue(binding.rules[i].source)
+            );
+          }
+
+          elementStylingApply(elIndex);
+        }
       }
     }
 
@@ -147,7 +193,6 @@ export function Component<CType extends NgxComponent>(compDef: CType) {
     encapsulation: ViewEncapsulation.None,
     directives: usedDirectives,
     inputs: usedInputs,
-    styles: usedStyles,
     factory: compDefFactory,
     template: compDefRender
   });

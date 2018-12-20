@@ -5,16 +5,9 @@ import {Component, Input} from '@angular/core';
   template: `
     <h3>
       Hello
-      <p class="para">{{ name }}</p>
+      <p [style.font-size]="'20pt'">{{ name }}</p>
     </h3>
-  `,
-  styles: [
-    `
-      .para {
-        font-size: 20pt;
-      }
-    `
-  ]
+  `
 })
 export class DisplayName {
   @Input() name!: string;

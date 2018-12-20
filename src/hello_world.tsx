@@ -3,7 +3,8 @@ import React, {
   useInput,
   useState,
   Inputs,
-  useStyle
+  useStyle,
+  usePipe
 } from './angular-x';
 
 interface DisplayNameProps {
@@ -14,11 +15,20 @@ interface DisplayNameProps {
 class DisplayName extends Inputs<DisplayNameProps> {
   static template() {
     const name = useInput<DisplayNameProps>('name');
-    const largeFont = useStyle(`
-      font-size: 20pt;
-    `);
+    const [size, setSize] = useState(10);
+    const sizePt = usePipe(size, s => `${s}pt`);
+    const largeFont = useStyle({'font-size': sizePt});
 
-    return <h3 class={largeFont}>Hello {name}!</h3>;
+    function incSize() {
+      setSize(s => s + 1);
+    }
+
+    return (
+      <>
+        <h3 style={largeFont}>Hello {name}!</h3>
+        <button onClick={incSize}>+</button>
+      </>
+    );
   }
 }
 
@@ -46,7 +56,7 @@ export class NgxHelloWorld {
     return (
       <>
         <DisplayName name="Ryan" />
-        <Counter />
+        {/* <Counter /> */}
       </>
     );
   }

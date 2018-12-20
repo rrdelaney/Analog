@@ -1,4 +1,5 @@
 import {Type} from '@angular/core';
+import {RenderValue} from './decorate';
 
 declare global {
   namespace JSX {
@@ -19,7 +20,7 @@ declare global {
 
 interface BaseProps {
   onClick?: ($event: MouseEvent) => void;
-  class?: string;
+  style?: RenderValue<any>;
 }
 
 export const Fragment = Symbol('Fragment');
