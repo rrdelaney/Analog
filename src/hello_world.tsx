@@ -1,4 +1,5 @@
-import React, {
+import {
+  React,
   Component,
   useInput,
   useState,

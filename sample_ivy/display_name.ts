@@ -4,9 +4,8 @@ import {Component, Input} from '@angular/core';
   selector: 'display-name',
   template: `
     <h3>
-      Hello <span *ngIf="name">{{ name }}</span>
+      Hello <span *ngIf="name"><ng-content></ng-content></span>
       <p [style.font-size]="'20pt'">{{ name }}</p>
-      <ng-content></ng-content>
     </h3>
   `
 })

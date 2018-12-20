@@ -4,7 +4,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 module.exports = {
   mode: 'development',
-  entry: './dist/sample_ivy/hello_world.js',
+  entry: './sample_ivy/dist/sample_ivy/hello_world.js',
   output: {
     path: path.join(__dirname, 'dist'),
     filename: 'out.js'

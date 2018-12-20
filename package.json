@@ -2,12 +2,14 @@
   "name": "ngx",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "webpack-dev-server",
+    "build": "webpack --config webpack.config.prod.js",
+    "compile-ivy": "ngc -p sample_ivy/tsconfig.json",
+    "start-ivy": "webpack-dev-server --config sample_ivy/webpack.config.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "Ryan Delaney <rrdelaney@outlook.com>",
   "license": "ISC",
   "dependencies": {
     "@angular/common": "^7.1.4",

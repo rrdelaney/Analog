@@ -19,7 +19,7 @@ import {
   ɵprojection as projection,
   ViewEncapsulation
 } from '@angular/core';
-import {AnyNgElement, isNgElement, Fragment} from './jsx';
+import {AnyNgElement, isNgElement, Fragment} from './element';
 import {claimInputs, InputValue, isInputValue} from './use_input';
 import {STATE_UPDATES, StateValue, isStateValue} from './use_state';
 import {PipeValue, isPipeValue} from './use_pipe';
@@ -30,6 +30,7 @@ import {
   claimHasUsedChildren
 } from './use_children';
 import {flat} from './utils';
+import {installCompat} from './compat';
 
 export type RenderValue<T> =
   | T
@@ -60,6 +61,8 @@ function findUsedDirectives(el: AnyNgElement): Type<{}>[] {
 }
 
 export function Component<CType extends NgxComponent>(compDef: CType) {
+  installCompat();
+
   const template = compDef.template();
   const usedInputs = claimInputs();
   const hasUsedChildren = claimHasUsedChildren();
