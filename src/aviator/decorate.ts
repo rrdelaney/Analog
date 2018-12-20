@@ -15,6 +15,8 @@ import {
   ɵmarkDirty as markDirty,
   ɵelementStyleProp as elementStyleProp,
   ɵelementStylingApply as elementStylingApply,
+  ɵprojectionDef as projectionDef,
+  ɵprojection as projection,
   ViewEncapsulation
 } from '@angular/core';
 import {AnyNgElement, isNgElement, Fragment} from './jsx';
@@ -22,6 +24,11 @@ import {claimInputs, InputValue, isInputValue} from './use_input';
 import {STATE_UPDATES, StateValue, isStateValue} from './use_state';
 import {PipeValue, isPipeValue} from './use_pipe';
 import {StyleValue, isStyleValue, StyleRule} from './use_style';
+import {
+  ChildrenValue,
+  isChildrenValue,
+  claimHasUsedChildren
+} from './use_children';
 import {flat} from './utils';
 
 export type RenderValue<T> =
@@ -29,7 +36,8 @@ export type RenderValue<T> =
   | InputValue<T>
   | StateValue<T>
   | StyleValue<T>
-  | PipeValue<any, T>;
+  | PipeValue<any, T>
+  | ChildrenValue;
 
 export interface NgxComponent extends Type<{}> {
   template(): AnyNgElement;
@@ -54,6 +62,7 @@ function findUsedDirectives(el: AnyNgElement): Type<{}>[] {
 export function Component<CType extends NgxComponent>(compDef: CType) {
   const template = compDef.template();
   const usedInputs = claimInputs();
+  const hasUsedChildren = claimHasUsedChildren();
   const usedDirectives = findUsedDirectives(template);
 
   function compDefFactory(t: Type<{}> | null) {
@@ -83,6 +92,8 @@ export function Component<CType extends NgxComponent>(compDef: CType) {
         return value.transform(unwrapRenderValue(value.source));
       } else if (isStyleValue(value)) {
         return unwrapRenderValue(value.rules[0].source);
+      } else if (isChildrenValue(value)) {
+        throw new Error('Cannot unwrap child here!');
       } else {
         return value;
       }
@@ -101,8 +112,18 @@ export function Component<CType extends NgxComponent>(compDef: CType) {
     }
 
     function renderEl(el: AnyNgElement) {
+      if (hasUsedChildren) {
+        projectionDef();
+      }
+
       if (typeof el.elSpec === 'string') {
         elementStart(elIndex, el.elSpec);
+      } else if (
+        el.elSpec !== Fragment &&
+        el.children &&
+        el.children.length > 0
+      ) {
+        elementStart(elIndex, el.elSpec.name);
       } else if (el.elSpec !== Fragment) {
         element(elIndex, el.elSpec.name, [1, ...Object.keys(el.props || {})]);
       }
@@ -132,10 +153,9 @@ export function Component<CType extends NgxComponent>(compDef: CType) {
 
         if (isNgElement(child)) {
           renderEl(child);
-        } else if (isStateValue(child)) {
-          interpolationBindings.set(elIndex, child);
-          text(elIndex++);
-        } else if (isInputValue(child)) {
+        } else if (isChildrenValue(child)) {
+          projection(elIndex++);
+        } else if (isStateValue(child) || isInputValue(child)) {
           interpolationBindings.set(elIndex, child);
           text(elIndex++);
         } else {
@@ -144,6 +164,12 @@ export function Component<CType extends NgxComponent>(compDef: CType) {
       }
 
       if (typeof el.elSpec === 'string') {
+        elementEnd();
+      } else if (
+        el.elSpec !== Fragment &&
+        el.children &&
+        el.children.length > 0
+      ) {
         elementEnd();
       }
     }

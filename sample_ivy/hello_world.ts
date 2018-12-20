@@ -3,7 +3,7 @@ import {Component, ɵrenderComponent as renderComponent} from '@angular/core';
 @Component({
   selector: 'hello-world',
   template: `
-    <display-name [name]="name" [name2]="name"></display-name>
+    <display-name [name]="name"> <span>Ryan</span> </display-name>
   `
 })
 export class HelloWorld {

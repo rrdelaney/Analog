@@ -10,6 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@angular/common": "^7.1.4",
     "@angular/compiler": "^7.1",
     "@angular/compiler-cli": "^7.1",
     "@angular/core": "^7.1",

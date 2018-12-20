@@ -4,7 +4,8 @@ import React, {
   useState,
   Inputs,
   useStyle,
-  usePipe
+  usePipe,
+  useChildren
 } from './aviator';
 
 interface DisplayNameProps {
@@ -53,6 +54,18 @@ class Counter {
 }
 
 @Component
+class Heading {
+  static template() {
+    const children = useChildren();
+    const largeFontStyle = useStyle({
+      'font-size': '20pt'
+    });
+
+    return <h3 style={largeFontStyle}>{children}</h3>;
+  }
+}
+
+@Component
 export class NgxHelloWorld {
   static template() {
     const [size, setSize] = useState(10);
@@ -65,6 +78,7 @@ export class NgxHelloWorld {
       <>
         <DisplayName name="Ryan" fontSize={size} onFontSizeIncrease={incSize} />
         {/* <Counter /> */}
+        <Heading>Ryan</Heading>
       </>
     );
   }
