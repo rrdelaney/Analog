@@ -46,9 +46,9 @@ class Counter {
   static template() {
     const [count, setCount] = useState(0);
 
-    function incCount() {
-      setCount(c => c + 1);
-    }
+    const incCount = usePipe(setCount, set => () => {
+      set(20);
+    });
 
     return (
       <>
@@ -76,9 +76,9 @@ export class NgxHelloWorld {
   static template() {
     const [size, setSize] = useState(10);
 
-    function incSize() {
-      setSize(c => c + 1);
-    }
+    const incSize = usePipe(setSize, set => () => {
+      set(20);
+    });
 
     return (
       <>

@@ -1,39 +1,40 @@
-import {EventEmitter} from '@angular/core';
+import {randomId} from './utils';
 
 const StateSymbol = Symbol('StateSymbol');
 export interface StateValue<T> {
   kind: typeof StateSymbol;
-  currentValue: T;
-  componentInstance?: unknown;
+  keyedBy: string;
+  defaultValue: T;
 }
 
 export function isStateValue(value: any): value is StateValue<any> {
   return Object.values(value).includes(StateSymbol);
 }
 
-export type StateUpdater<T> = (update: T | ((_: T) => T)) => void;
-
-export function isStateUpdateFn<T>(value: any): value is (_: T) => T {
-  return typeof value === 'function';
+const UpdaterSymbol = Symbol('UpdaterSymbol');
+export interface UpdaterValue<T> {
+  kind: typeof UpdaterSymbol;
+  keyedBy: string;
 }
 
-export const STATE_UPDATES = new EventEmitter<unknown>();
+export function isUpdaterValue(value: any): value is UpdaterValue<any> {
+  return Object.values(value).includes(UpdaterSymbol);
+}
+export function useState<T>(
+  defaultValue: T
+): [StateValue<T>, UpdaterValue<(_: T) => void>] {
+  const keyedBy = randomId();
 
-export function useState<T>(defaultValue: T): [StateValue<T>, StateUpdater<T>] {
   const stateValue: StateValue<T> = {
     kind: StateSymbol,
-    currentValue: defaultValue
+    keyedBy,
+    defaultValue
   };
 
-  const stateUpdater: StateUpdater<T> = update => {
-    if (isStateUpdateFn<T>(update)) {
-      stateValue.currentValue = update(stateValue.currentValue);
-    } else {
-      stateValue.currentValue = update;
-    }
-
-    STATE_UPDATES.next(stateValue.componentInstance);
+  const updaterValue: UpdaterValue<T> = {
+    kind: UpdaterSymbol,
+    keyedBy
   };
 
-  return [stateValue, stateUpdater];
+  return [stateValue, updaterValue];
 }

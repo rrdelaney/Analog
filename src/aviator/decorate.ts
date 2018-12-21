@@ -26,7 +26,12 @@ import {
 } from '@angular/core';
 import {AnyNgElement, isNgElement, isComponentSpec} from './element';
 import {claimInputs, InputValue, isInputValue} from './use_input';
-import {STATE_UPDATES, StateValue, isStateValue} from './use_state';
+import {
+  StateValue,
+  isStateValue,
+  UpdaterValue,
+  isUpdaterValue
+} from './use_state';
 import {PipeValue, isPipeValue} from './use_pipe';
 import {StyleValue, isStyleValue, StyleRule} from './use_style';
 import {
@@ -41,6 +46,7 @@ export type RenderValue<T> =
   | T
   | InputValue<T>
   | StateValue<T>
+  | UpdaterValue<T>
   | StyleValue<T>
   | PipeValue<any, T>
   | ChildrenValue;
@@ -68,7 +74,12 @@ function findUsedDirectives(el: AnyNgElement): Type<{}>[] {
 class Renderer {
   static unwrapRenderValue<T>(value: RenderValue<T>, ctx: any): T {
     if (isStateValue(value)) {
-      return value.currentValue;
+      return ctx[value.keyedBy] || value.defaultValue;
+    } else if (isUpdaterValue(value)) {
+      return ((newValue: any) => {
+        ctx[value.keyedBy] = newValue;
+        markDirty(ctx);
+      }) as any;
     } else if (isInputValue(value)) {
       return ctx[value.inputName] || value.defaultValue;
     } else if (isPipeValue(value)) {
@@ -79,18 +90,6 @@ class Renderer {
       throw new Error('Cannot unwrap child here!');
     } else {
       return value;
-    }
-  }
-
-  static setComponentInstanceForState<T>(value: RenderValue<T>, ctx: any) {
-    if (isStateValue(value) && !value.componentInstance) {
-      value.componentInstance = ctx;
-    } else if (isPipeValue(value)) {
-      Renderer.setComponentInstanceForState(value.source, ctx);
-    } else if (isStyleValue(value)) {
-      for (const {source} of value.rules) {
-        Renderer.setComponentInstanceForState(source, ctx);
-      }
     }
   }
 
@@ -120,8 +119,6 @@ class Renderer {
     }
 
     for (const [propName, propValue] of Object.entries(el.props || {})) {
-      Renderer.setComponentInstanceForState(propValue, ctx);
-
       if (propName === 'onClick') {
         listener('click', Renderer.unwrapRenderValue(propValue, ctx));
       } else if (propName === 'style') {
@@ -140,8 +137,6 @@ class Renderer {
     }
 
     for (const child of el.children || []) {
-      Renderer.setComponentInstanceForState(child, ctx);
-
       if (isNgElement(child)) {
         this.renderEl(child, ctx);
       } else if (isChildrenValue(child)) {
@@ -259,12 +254,6 @@ export function Component<CType extends NgxComponent>(compDef: CType) {
 
   function compDefFactory(t: Type<{}> | null) {
     const instance = new (t || compDef)();
-
-    STATE_UPDATES.subscribe((updatedComponent: unknown) => {
-      if (updatedComponent === instance) {
-        markDirty(instance);
-      }
-    });
 
     return instance;
   }

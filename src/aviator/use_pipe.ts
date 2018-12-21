@@ -14,7 +14,7 @@ export function isPipeValue(value: any): value is PipeValue<any, any> {
 export function usePipe<T, R>(
   input: RenderValue<T>,
   transform: (_: T) => R
-): PipeValue<T, R> {
+): RenderValue<R> {
   return {
     kind: PipeSymbol,
     source: input,
