@@ -39,6 +39,7 @@ import {
   isChildrenValue,
   claimHasUsedChildren
 } from './use_children';
+import {EffectValue, isEffectValue} from './use_effect';
 import {flat} from './utils';
 import {isMatchValue} from './match';
 
@@ -49,6 +50,7 @@ export type RenderValue<T> =
   | UpdaterValue<T>
   | StyleValue<T>
   | PipeValue<any, T>
+  | EffectValue<any>
   | ChildrenValue;
 
 export interface NgxComponent extends Type<{}> {
@@ -83,7 +85,19 @@ class Renderer {
     } else if (isInputValue(value)) {
       return ctx[value.inputName] || value.defaultValue;
     } else if (isPipeValue(value)) {
-      return value.transform(Renderer.unwrapRenderValue(value.source, ctx));
+      return value.transform(
+        ...value.sources.map((source: any) =>
+          Renderer.unwrapRenderValue(source, ctx)
+        )
+      );
+    } else if (isEffectValue(value)) {
+      return (() => {
+        value.effect(
+          ...value.sources.map((source: any) =>
+            Renderer.unwrapRenderValue(source, ctx)
+          )
+        );
+      }) as any;
     } else if (isStyleValue(value)) {
       return Renderer.unwrapRenderValue(value.rules[0].source, ctx);
     } else if (isChildrenValue(value)) {

@@ -3,7 +3,7 @@ import {AnyNgElement} from './element';
 
 const MatchSymbol = Symbol('MatchSymbol');
 export class MatchValue<T> {
-  kind = MatchValue;
+  kind = MatchSymbol;
 
   constructor(
     readonly source: RenderValue<T>,

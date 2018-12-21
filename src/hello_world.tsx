@@ -9,6 +9,7 @@ import {
   useChildren,
   match
 } from './aviator';
+import {useEffect} from './aviator/use_effect';
 
 interface DisplayNameProps {
   name: string;
@@ -25,17 +26,18 @@ class DisplayName extends Inputs<DisplayNameProps> {
       'onFontSizeIncrease'
     );
 
-    const sizePt = usePipe(fontSize, s => `${s}pt`);
+    const sizePt = usePipe([fontSize], s => `${s}pt`);
     const largeFont = useStyle({'font-size': sizePt});
 
     return (
       <>
-        <h3 style={largeFont}>Hello {name}!</h3>
         <button onClick={onFontSizeIncrease}>+</button>
 
         {match(fontSize)
           .when(fs => fs > 10, <span>Thats a honker!</span>)
           .else(<span>Small honk</span>)}
+
+        <h3 style={largeFont}>Hello {name}!</h3>
       </>
     );
   }
@@ -46,8 +48,8 @@ class Counter {
   static template() {
     const [count, setCount] = useState(0);
 
-    const incCount = usePipe(setCount, set => () => {
-      set(20);
+    const incCount = useEffect([count, setCount], (count, setCount) => {
+      setCount(count + 1);
     });
 
     return (
@@ -76,16 +78,16 @@ export class NgxHelloWorld {
   static template() {
     const [size, setSize] = useState(10);
 
-    const incSize = usePipe(setSize, set => () => {
-      set(20);
+    const incSize = useEffect([size, setSize], (size, setSize) => {
+      setSize(size + 1);
     });
 
     return (
       <>
         <DisplayName name="Ryan" fontSize={size} onFontSizeIncrease={incSize} />
+        {/* <Counter />
         <Counter />
-        <Counter />
-        <Heading>Ryan</Heading>
+        <Heading>Ryan</Heading> */}
       </>
     );
   }
