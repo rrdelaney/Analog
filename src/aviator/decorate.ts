@@ -17,9 +17,14 @@ import {
   ɵelementStylingApply as elementStylingApply,
   ɵprojectionDef as projectionDef,
   ɵprojection as projection,
+  ɵcontainer as container,
+  ɵcontainerRefreshStart as containerRefreshStart,
+  ɵcontainerRefreshEnd as containerRefreshEnd,
+  ɵembeddedViewStart as embeddedViewStart,
+  ɵembeddedViewEnd as embeddedViewEnd,
   ViewEncapsulation
 } from '@angular/core';
-import {AnyNgElement, isNgElement, Fragment} from './element';
+import {AnyNgElement, isNgElement, isComponentSpec} from './element';
 import {claimInputs, InputValue, isInputValue} from './use_input';
 import {STATE_UPDATES, StateValue, isStateValue} from './use_state';
 import {PipeValue, isPipeValue} from './use_pipe';
@@ -30,7 +35,7 @@ import {
   claimHasUsedChildren
 } from './use_children';
 import {flat} from './utils';
-import {installCompat} from './compat';
+import {isMatchValue} from './match';
 
 export type RenderValue<T> =
   | T
@@ -47,7 +52,7 @@ export interface NgxComponent extends Type<{}> {
 
 function findUsedDirectives(el: AnyNgElement): Type<{}>[] {
   const usedDirectives: Type<{}>[] = [];
-  if (typeof el.elSpec !== 'string' && el.elSpec !== Fragment) {
+  if (isComponentSpec(el.elSpec)) {
     usedDirectives.push(el.elSpec);
   }
 
@@ -60,13 +65,197 @@ function findUsedDirectives(el: AnyNgElement): Type<{}>[] {
   return Array.from(new Set([...usedDirectives, ...childInputs]));
 }
 
-export function Component<CType extends NgxComponent>(compDef: CType) {
-  installCompat();
+class Renderer {
+  static unwrapRenderValue<T>(value: RenderValue<T>, ctx: any): T {
+    if (isStateValue(value)) {
+      return value.currentValue;
+    } else if (isInputValue(value)) {
+      return ctx[value.inputName] || value.defaultValue;
+    } else if (isPipeValue(value)) {
+      return value.transform(Renderer.unwrapRenderValue(value.source, ctx));
+    } else if (isStyleValue(value)) {
+      return Renderer.unwrapRenderValue(value.rules[0].source, ctx);
+    } else if (isChildrenValue(value)) {
+      throw new Error('Cannot unwrap child here!');
+    } else {
+      return value;
+    }
+  }
 
+  static setComponentInstanceForState<T>(value: RenderValue<T>, ctx: any) {
+    if (isStateValue(value) && !value.componentInstance) {
+      value.componentInstance = ctx;
+    } else if (isPipeValue(value)) {
+      Renderer.setComponentInstanceForState(value.source, ctx);
+    } else if (isStyleValue(value)) {
+      for (const {source} of value.rules) {
+        Renderer.setComponentInstanceForState(source, ctx);
+      }
+    }
+  }
+
+  private elIndex = 0;
+  private interpolationBindings = new Map<number, RenderValue<unknown>>();
+  private propertyBindings = new Map<[number, string], RenderValue<unknown>>();
+  private styleBindings = new Map<number, RenderValue<unknown>>();
+  private matchBindings = new Map<number, RenderValue<unknown>>();
+
+  private renderEl(el: AnyNgElement, ctx: any) {
+    let usedElIndex = true;
+    if (typeof el.elSpec === 'string') {
+      elementStart(this.elIndex, el.elSpec);
+    } else if (
+      isComponentSpec(el.elSpec) &&
+      el.children &&
+      el.children.length > 0
+    ) {
+      elementStart(this.elIndex, el.elSpec.name);
+    } else if (isComponentSpec(el.elSpec)) {
+      element(this.elIndex, el.elSpec.name, [
+        1,
+        ...Object.keys(el.props || {})
+      ]);
+    } else {
+      usedElIndex = false;
+    }
+
+    for (const [propName, propValue] of Object.entries(el.props || {})) {
+      Renderer.setComponentInstanceForState(propValue, ctx);
+
+      if (propName === 'onClick') {
+        listener('click', Renderer.unwrapRenderValue(propValue, ctx));
+      } else if (propName === 'style') {
+        this.styleBindings.set(this.elIndex, propValue);
+        elementStyling(
+          null,
+          propValue.rules.map((v: StyleRule<any>) => v.property)
+        );
+      } else {
+        this.propertyBindings.set([this.elIndex, propName], propValue);
+      }
+    }
+
+    if (usedElIndex) {
+      this.elIndex++;
+    }
+
+    for (const child of el.children || []) {
+      Renderer.setComponentInstanceForState(child, ctx);
+
+      if (isNgElement(child)) {
+        this.renderEl(child, ctx);
+      } else if (isChildrenValue(child)) {
+        projection(this.elIndex++);
+      } else if (isStateValue(child) || isInputValue(child)) {
+        this.interpolationBindings.set(this.elIndex, child);
+        text(this.elIndex++);
+      } else if (isMatchValue(child)) {
+        this.matchBindings.set(this.elIndex, child);
+        container(this.elIndex++);
+      } else {
+        text(this.elIndex++, child);
+      }
+    }
+
+    if (typeof el.elSpec === 'string') {
+      elementEnd();
+    } else if (
+      isComponentSpec(el.elSpec) &&
+      el.children &&
+      el.children.length > 0
+    ) {
+      elementEnd();
+    }
+  }
+
+  private renderBindings(ctx: any) {
+    for (const [elIndex, binding] of this.interpolationBindings) {
+      textBinding(
+        elIndex,
+        interpolation1('', Renderer.unwrapRenderValue(binding, ctx), '')
+      );
+    }
+
+    for (const [[elIndex, propName], binding] of this.propertyBindings) {
+      elementProperty(
+        elIndex,
+        propName,
+        bind(Renderer.unwrapRenderValue(binding, ctx))
+      );
+    }
+
+    for (const [elIndex, binding] of this.matchBindings) {
+      if (isMatchValue(binding)) {
+        containerRefreshStart(elIndex);
+
+        const value = Renderer.unwrapRenderValue(binding.source, ctx);
+        const match = binding.getMatchFor(value);
+        if (match) {
+          const rf = embeddedViewStart(this.embeddedViewCount + 1, 10, 10);
+          const matchRenderer = new Renderer({
+            template: match,
+            hasUsedChildren: false,
+            embeddedViewCount: this.embeddedViewCount + 1
+          });
+
+          matchRenderer.render(rf, ctx);
+          embeddedViewEnd();
+        }
+
+        containerRefreshEnd();
+      }
+    }
+
+    for (const [elIndex, binding] of this.styleBindings) {
+      if (isStyleValue(binding)) {
+        for (let i = 0; i < binding.rules.length; ++i) {
+          elementStyleProp(
+            elIndex,
+            i,
+            Renderer.unwrapRenderValue(binding.rules[i].source, ctx)
+          );
+        }
+
+        elementStylingApply(elIndex);
+      }
+    }
+  }
+
+  private readonly template: AnyNgElement;
+  private readonly hasUsedChildren: boolean;
+  private readonly embeddedViewCount: number;
+  constructor(opts: {
+    template: AnyNgElement;
+    hasUsedChildren: boolean;
+    embeddedViewCount?: number;
+  }) {
+    this.template = opts.template;
+    this.hasUsedChildren = opts.hasUsedChildren;
+    this.embeddedViewCount = opts.embeddedViewCount || 0;
+  }
+
+  render(rf: RenderFlags, ctx: any) {
+    if (rf & RenderFlags.Create) {
+      if (this.hasUsedChildren) {
+        projectionDef();
+      }
+
+      this.elIndex = 0;
+      this.renderEl(this.template, ctx);
+    }
+
+    if (rf & RenderFlags.Update) {
+      this.renderBindings(ctx);
+    }
+  }
+}
+
+export function Component<CType extends NgxComponent>(compDef: CType) {
   const template = compDef.template();
   const usedInputs = claimInputs();
   const hasUsedChildren = claimHasUsedChildren();
   const usedDirectives = findUsedDirectives(template);
+  const renderer = new Renderer({template, hasUsedChildren});
 
   function compDefFactory(t: Type<{}> | null) {
     const instance = new (t || compDef)();
@@ -80,140 +269,6 @@ export function Component<CType extends NgxComponent>(compDef: CType) {
     return instance;
   }
 
-  let elIndex = 0;
-  const interpolationBindings = new Map<number, RenderValue<unknown>>();
-  const propertyBindings = new Map<[number, string], RenderValue<unknown>>();
-  const styleBindings = new Map<number, RenderValue<unknown>>();
-
-  function compDefRender(rf: RenderFlags, ctx: {}) {
-    function unwrapRenderValue<T>(value: RenderValue<T>): T {
-      if (isStateValue(value)) {
-        return value.currentValue;
-      } else if (isInputValue(value)) {
-        return (ctx as any)[value.inputName] || value.defaultValue;
-      } else if (isPipeValue(value)) {
-        return value.transform(unwrapRenderValue(value.source));
-      } else if (isStyleValue(value)) {
-        return unwrapRenderValue(value.rules[0].source);
-      } else if (isChildrenValue(value)) {
-        throw new Error('Cannot unwrap child here!');
-      } else {
-        return value;
-      }
-    }
-
-    function setComponentInstanceForState<T>(value: RenderValue<T>) {
-      if (isStateValue(value) && !value.componentInstance) {
-        value.componentInstance = ctx;
-      } else if (isPipeValue(value)) {
-        setComponentInstanceForState(value.source);
-      } else if (isStyleValue(value)) {
-        for (const {source} of value.rules) {
-          setComponentInstanceForState(source);
-        }
-      }
-    }
-
-    function renderEl(el: AnyNgElement) {
-      if (hasUsedChildren) {
-        projectionDef();
-      }
-
-      if (typeof el.elSpec === 'string') {
-        elementStart(elIndex, el.elSpec);
-      } else if (
-        el.elSpec !== Fragment &&
-        el.children &&
-        el.children.length > 0
-      ) {
-        elementStart(elIndex, el.elSpec.name);
-      } else if (el.elSpec !== Fragment) {
-        element(elIndex, el.elSpec.name, [1, ...Object.keys(el.props || {})]);
-      }
-
-      for (const [propName, propValue] of Object.entries(el.props || {})) {
-        setComponentInstanceForState(propValue);
-
-        if (propName === 'onClick') {
-          listener('click', unwrapRenderValue(propValue));
-        } else if (propName === 'style') {
-          styleBindings.set(elIndex, propValue);
-          elementStyling(
-            null,
-            propValue.rules.map((v: StyleRule<any>) => v.property)
-          );
-        } else {
-          propertyBindings.set([elIndex, propName], propValue);
-        }
-      }
-
-      if (el.elSpec !== Fragment) {
-        elIndex++;
-      }
-
-      for (const child of el.children || []) {
-        setComponentInstanceForState(child);
-
-        if (isNgElement(child)) {
-          renderEl(child);
-        } else if (isChildrenValue(child)) {
-          projection(elIndex++);
-        } else if (isStateValue(child) || isInputValue(child)) {
-          interpolationBindings.set(elIndex, child);
-          text(elIndex++);
-        } else {
-          text(elIndex++, child);
-        }
-      }
-
-      if (typeof el.elSpec === 'string') {
-        elementEnd();
-      } else if (
-        el.elSpec !== Fragment &&
-        el.children &&
-        el.children.length > 0
-      ) {
-        elementEnd();
-      }
-    }
-
-    function renderBindings() {
-      for (const [elIndex, binding] of interpolationBindings) {
-        textBinding(
-          elIndex,
-          interpolation1('', unwrapRenderValue(binding), '')
-        );
-      }
-
-      for (const [[elIndex, propName], binding] of propertyBindings) {
-        elementProperty(elIndex, propName, bind(unwrapRenderValue(binding)));
-      }
-
-      for (const [elIndex, binding] of styleBindings) {
-        if (isStyleValue(binding)) {
-          for (let i = 0; i < binding.rules.length; ++i) {
-            elementStyleProp(
-              elIndex,
-              i,
-              unwrapRenderValue(binding.rules[i].source)
-            );
-          }
-
-          elementStylingApply(elIndex);
-        }
-      }
-    }
-
-    if (rf & 1) {
-      elIndex = 0;
-      renderEl(template);
-    }
-
-    if (rf & 2) {
-      renderBindings();
-    }
-  }
-
   compDef.ngComponentDef = defineComponent({
     type: compDef,
     selectors: [[compDef.name]],
@@ -223,7 +278,7 @@ export function Component<CType extends NgxComponent>(compDef: CType) {
     directives: usedDirectives,
     inputs: usedInputs,
     factory: compDefFactory,
-    template: compDefRender
+    template: (rf, ctx) => renderer.render(rf, ctx)
   });
 }
 

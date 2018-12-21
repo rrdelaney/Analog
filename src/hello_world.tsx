@@ -6,7 +6,8 @@ import {
   Inputs,
   useStyle,
   usePipe,
-  useChildren
+  useChildren,
+  match
 } from './aviator';
 
 interface DisplayNameProps {
@@ -31,6 +32,10 @@ class DisplayName extends Inputs<DisplayNameProps> {
       <>
         <h3 style={largeFont}>Hello {name}!</h3>
         <button onClick={onFontSizeIncrease}>+</button>
+
+        {match(fontSize)
+          .when(fs => fs > 10, <span>Thats a honker!</span>)
+          .else(<span>Small honk</span>)}
       </>
     );
   }
@@ -78,7 +83,8 @@ export class NgxHelloWorld {
     return (
       <>
         <DisplayName name="Ryan" fontSize={size} onFontSizeIncrease={incSize} />
-        {/* <Counter /> */}
+        <Counter />
+        <Counter />
         <Heading>Ryan</Heading>
       </>
     );
