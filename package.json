@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "rollup": "rollup -c rollup.config.js",
     "serve": "serve",
+    "rollup": "rollup -c rollup.config.js",
+    "rollup-prod": "rollup -c rollup.config.prod.js",
     "compile-ivy": "ngc -p sample_ivy/tsconfig.json"
   },
   "keywords": [],
@@ -25,6 +26,7 @@
     "rollup-plugin-alias": "^1.5.1",
     "rollup-plugin-commonjs": "^9.2.0",
     "rollup-plugin-node-resolve": "^4.0.0",
+    "rollup-plugin-terser": "^3.0.0",
     "rollup-plugin-typescript": "^1.0.0",
     "serve": "^10.1.1"
   }
