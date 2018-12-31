@@ -4,6 +4,7 @@ export {useInput} from './use_input';
 export {useState} from './use_state';
 export {useStyle} from './use_style';
 export {usePipe} from './use_pipe';
+export {useEffect} from './use_effect';
 export {useChildren} from './use_children';
 
 export {match} from './match';
@@ -14,4 +15,4 @@ export const React = {
   Fragment: Fragment
 };
 
-export * from './jsx';
+// export * from './jsx';

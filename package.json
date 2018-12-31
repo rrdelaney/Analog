@@ -1,12 +1,11 @@
 {
-  "name": "ngx",
+  "name": "angular-analog",
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "start": "webpack-dev-server",
-    "build": "webpack --config webpack.config.prod.js",
-    "compile-ivy": "ngc -p sample_ivy/tsconfig.json",
-    "start-ivy": "webpack-dev-server --config sample_ivy/webpack.config.js"
+    "rollup": "rollup -c rollup.config.js",
+    "serve": "serve",
+    "compile-ivy": "ngc -p sample_ivy/tsconfig.json"
   },
   "keywords": [],
   "author": "Ryan Delaney <rrdelaney@outlook.com>",
@@ -16,19 +15,17 @@
     "@angular/compiler": "^7.1",
     "@angular/compiler-cli": "^7.1",
     "@angular/core": "^7.1",
-    "browserify": "^16.2.3",
     "rxjs": "^6.3.3",
-    "serve": "^10.1.1",
     "tsickle": "^0.34.0",
     "tslib": "^1.9.3",
     "typescript": "^3.1.6"
   },
   "devDependencies": {
-    "html-webpack-plugin": "^3.2.0",
-    "terser-webpack-plugin": "^1.1.0",
-    "ts-loader": "^5.3.1",
-    "webpack": "^4.27.1",
-    "webpack-cli": "^3.1.2",
-    "webpack-dev-server": "^3.1.10"
+    "rollup": "^1.0.0",
+    "rollup-plugin-alias": "^1.5.1",
+    "rollup-plugin-commonjs": "^9.2.0",
+    "rollup-plugin-node-resolve": "^4.0.0",
+    "rollup-plugin-typescript": "^1.0.0",
+    "serve": "^10.1.1"
   }
 }
