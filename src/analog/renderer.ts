@@ -77,7 +77,6 @@ function renderEl(ctx: {}, el: AnyNgElement, bindings: Bindings) {
   for (const [propName, propValue] of Object.entries(el.props || {})) {
     if (propName === 'onClick') {
       listener('click', e => {
-        console.log('CLICKED');
         propValue.next(e);
       });
     } else if (propName === 'style') {
@@ -103,7 +102,6 @@ function renderEl(ctx: {}, el: AnyNgElement, bindings: Bindings) {
       child.subscribe(behaviorChild);
 
       behaviorChild.subscribe(() => {
-        console.log('DIRTY');
         markDirty(ctx);
       });
 

@@ -4,7 +4,7 @@
   "description": "",
   "scripts": {
     "serve": "serve",
-    "rollup": "rollup -c rollup.config.js",
+    "rollup": "rollup -c rollup.config.js --watch",
     "rollup-prod": "rollup -c rollup.config.prod.js",
     "compile-ivy": "ngc -p sample_ivy/tsconfig.json"
   },

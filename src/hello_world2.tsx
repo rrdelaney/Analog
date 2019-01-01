@@ -1,19 +1,19 @@
-import {Subject, combineLatest} from 'rxjs';
+import {Subject} from 'rxjs';
+import {withLatestFrom, map} from 'rxjs/operators';
 import {Component, React, useState} from './analog';
 
 @Component
 export class NgHelloWorld {
   static template() {
-    console.log('TEMPLATE');
     const click$ = new Subject<MouseEvent>();
-    click$.subscribe(console.log);
     const count$ = useState(0);
-    count$.subscribe(console.log);
 
-    combineLatest(count$, click$, count => {
-      console.log('INC COUNT');
-      count$.next(count + 1);
-    });
+    click$
+      .pipe(
+        withLatestFrom(count$),
+        map(([_, count]) => count + 1)
+      )
+      .subscribe(count$);
 
     return (
       <>
